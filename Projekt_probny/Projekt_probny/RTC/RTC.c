@@ -52,7 +52,7 @@ void pobierz_date(Data *data)
 	
 	TWI_read_buf(ADDR_PCF8583, DaysReg, 4, bufor);
 	data->dzien = bcd2bin(bufor[0]);
-	data->dzien_tygodnia = bufor[1];
+	data->dzien_tygodnia = bin2bcd(bufor[1]);
 	data->miesiac = bcd2bin(bufor[2]);
 	data->rok = bcd2bin(bufor[3]);
 }

@@ -151,7 +151,7 @@ int main(void)
 	GICR |= (1<<INT0);		// odblokowanie przerwania
 	PORTD |= (1<<PD2);		// podci¹gniêcie pinu INT0 do VCC
 	
-	i2cSetBitrate(400); //Ustaw prêdkoœæ i2c na 400kHz
+	i2cSetBitrate(100); //Ustaw prêdkoœæ i2c na 100kHz
 	lcd_init();
 
 	pobierz_czas(&czas);
@@ -161,11 +161,11 @@ int main(void)
     while (1) 
     {	
 #if _EXT_EEPROM_EMPTY==0
-		//eeprom_read_block(&ustawienia, &deafult_flags, sizeof(deafult_flags));
+		eeprom_read_block(&ustawienia, &deafult_flags, sizeof(deafult_flags));
 		if (ustawienia.ustawienia_poczatkowe)
 		{
-			eeprom_read_block(&data, &deafult_data, sizeof(deafult_data));
-			eeprom_read_block(&czas, &deafult_czas, sizeof(deafult_czas));
+			eeprom_read_block(&data, &deafult_data, sizeof(data));
+			eeprom_read_block(&czas, &deafult_czas, sizeof(czas));
 			ustaw_date(&data);
 			ustaw_czas(&czas);
 
@@ -196,19 +196,19 @@ int main(void)
 					break;
 		}
 		
-		if(Flagi.flaga_klawiatura)
+		if (menu_func_active)
 		{
-			if (menu_func_active)
+			if(Flagi.flaga_lcd)
 			{
-				if(Flagi.flaga_lcd)
-				{
-					EI2C_read_buf(ADDR_EEMEM_24C64, menu_ptr->addr_ext_eeprom, menu_ptr->size_ext_eeprom, (uint8_t *)bufor_lcd);
-					lcd_locate(0, 0);
-				}
-
-				(*menu_ptr->funkcja)(bufor_lcd);		//WskaŸnik na funkcje dla danej pozycji menu
+				EI2C_read_buf(ADDR_EEMEM_24C64, menu_ptr->addr_ext_eeprom, menu_ptr->size_ext_eeprom, (uint8_t *)bufor_lcd);
+				lcd_locate(0, 0);
 			}
-			
+
+			(*menu_ptr->funkcja)(bufor_lcd);		//WskaŸnik na funkcje dla danej pozycji menu
+		}
+
+		if(Flagi.flaga_klawiatura)
+		{	
 			if (key_code == PRZYCISK_PRAWO)
 			{
 				if(menu_ptr->next!=NULL)
@@ -355,50 +355,46 @@ void M10_func_ustawienia_data(char *str)
 }
 void M11_func_ustawienia_godzina(char *str)
 {
-	static uint8_t i=0, j=0, edit=0;
-	static uint8_t state[1]={0,0};
-	static uint32_t cnt[1]={0,0}, offset_cnt[1]={0,0};
+	static uint8_t i=0, edit=0;
+	static uint8_t state=0;
+	static uint32_t cnt=0, offset_cnt=0;
 	
 	if(Flagi.flaga_lcd)
 	{
 		lcd_locate(0, 10);
 		lcd_char(0x7E);
-		fifo_bufor_lcd(str,i,strlen(str));
 		lcd_str(str);
-		EI2C_read_buf(ADDR_EEMEM_24C64, offsetof(EXT_EEPROM_var, empty), SIZEOF (EXT_EEPROM_var, empty), (uint8_t *)str);
-		lcd_locate(1, 0);
-		lcd_str(str);
+		//EI2C_read_buf(ADDR_EEMEM_24C64, offsetof(EXT_EEPROM_var, empty), SIZEOF (EXT_EEPROM_var, empty), (uint8_t *)str);
+		//lcd_locate(1, 0);
+		//lcd_str(str);
 		Flagi.flaga_lcd=0;
 	}
 
-	switch(state[0])
+	switch(state)
 	{
 		case 0:
-			state[0]=1;
+			state=1;	
 			
-			if(i>7)
-				i=0;
-			else
-				i++;
-
-			lcd_locate(0, 10);
-			lcd_char(0x7E);
-			fifo_bufor_lcd(str,i,strlen(str));
-			lcd_str(str);
-				
 			cli();
-			cnt[0]=25000;
-			offset_cnt[0]=licznik;
+			cnt=25000;
+			offset_cnt=licznik;
 			sei();
 			break;
 		case 1:
-			if(cnt[0]<=licznik-offset_cnt[0])
+			if(cnt<=licznik-offset_cnt)
 			{
-				state[0]=0;
+				i++;
+				if(i>8)
+					i=0;
+				lcd_locate(0, 10);
+				lcd_char(0x7E);
+				fifo_bufor_lcd(str,i,strlen(str));
+				lcd_str(str);
+				state=0;
 			}
 			break;
 	}
-
+	/*
 	if (key_code == PRZYCISK_ENTER)
 	{
 		edit++;
@@ -455,6 +451,31 @@ void M11_func_ustawienia_godzina(char *str)
 				}
 	}
 	
+	switch(edit)
+	{
+		case 1:
+			lcd_cursor_on();
+			lcd_blink_on();
+			lcd_locate(1,0);
+			lcd_locate(1,1);
+			break;
+		case 2:
+			lcd_cursor_on();
+			lcd_blink_on();
+			lcd_locate(1,3);
+			lcd_locate(1,4);
+			break;
+		case 3:
+			lcd_cursor_on();
+			lcd_blink_on();
+			lcd_locate(1,5);
+			lcd_locate(1,6);
+		break;
+		default:
+			lcd_cursor_off();
+			lcd_blink_off();
+	}
+	lcd_cursor_off();
 	lcd_locate(1,0);
 	if( czas.godziny < 10 ) lcd_char('0');
 	lcd_int(czas.godziny);
@@ -464,6 +485,7 @@ void M11_func_ustawienia_godzina(char *str)
 	lcd_char(':');
 	if( czas.sekundy < 10 ) lcd_char('0');
 	lcd_int(czas.sekundy);
+	*/
 
 }
 void M12_func_ustawienia_lcd(char *str)
