@@ -557,7 +557,7 @@ void M10_func_ustawienia_data(char *str)
 			{
 				data.miesiac++;
 				if (data.miesiac>12)
-					data.miesiac=0;
+					data.miesiac=1;
 					
 				switch(data.miesiac)
 				{
@@ -622,7 +622,7 @@ void M10_func_ustawienia_data(char *str)
 			else if (key_code == PRZYCISK_DOL && Flagi.flaga_klawiatura==0)
 			{
 				data.miesiac--;
-				if ((int8_t)data.miesiac<0)
+				if ((int8_t)data.miesiac<1)
 					data.miesiac=12;
 			}
 			break;
