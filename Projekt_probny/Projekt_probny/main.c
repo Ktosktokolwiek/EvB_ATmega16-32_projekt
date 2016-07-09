@@ -248,19 +248,6 @@ int main(void)
 		else
 			menu_func_active=0;
 
-//		data=pobierz_date();
-//		lcd_locate(1, 0);
-//		lcd_wyswietl_date(&data,bufor_lcd,0);
-//		fifo_bufor_lcd(bufor_lcd, dddd, strlen(bufor_lcd));
-//		lcd_str(bufor_lcd);
-//		_delay_ms(500);
-//		lcd_locate(1, 0);
-//		lcd_wyswietl_date(&data,extEEMEM_buf, 3);
-//		lcd_str(extEEMEM_buf);
-		
-//		lcd_write_cmd( LCDC_SHIFT|LCDC_SHIFTDISP|LCDC_SHIFTL );
-//		_delay_ms(100);
-
 #endif  // _EXT_EEPROM_EMPTY
     }
 }
@@ -336,12 +323,12 @@ void M1_func_ustawienia(char *str)
 		lcd_str(str);
 		Flagi.flaga_lcd=0;
 	}
-
 }
 void M10_func_ustawienia_data(char *str)
 {
-	static uint8_t state=0;
+	static uint8_t state=0, edit=0, i=0;
 	static uint32_t cnt=0, offset_cnt=0;
+	
 	if(Flagi.flaga_lcd)
 	{
 		lcd_locate(0, 10);
@@ -351,6 +338,346 @@ void M10_func_ustawienia_data(char *str)
 		lcd_locate(1, 0);
 		lcd_str(str);
 		Flagi.flaga_lcd=0;
+	}
+	
+	if (key_code == PRZYCISK_ENTER)
+	{
+		edit++;
+		if (edit>4)
+			edit=1;
+		Flagi.flaga_klawiatura=0;
+	}
+	else if (key_code == PRZYCISK_POWROT && Flagi.flaga_klawiatura==0)
+	{
+		edit=0;
+		Flagi.flaga_klawiatura=1;
+		ustaw_date(&data);
+	}
+	
+	switch(edit)
+	{
+		case 1:
+			if (key_code == PRZYCISK_GORA && Flagi.flaga_klawiatura==0)
+			{
+				data.dzien_tygodnia++;
+				if (data.dzien_tygodnia>6)
+					data.dzien_tygodnia=0;
+			}
+			else if (key_code == PRZYCISK_DOL && Flagi.flaga_klawiatura==0)
+			{
+				data.dzien_tygodnia--;
+				if ((int8_t)data.dzien_tygodnia<0)
+					data.dzien_tygodnia=6;
+			}
+			break;
+		case 2:
+			if (key_code == PRZYCISK_GORA && Flagi.flaga_klawiatura==0)
+			{
+				data.dzien++;
+				switch(data.miesiac)
+				{
+					case PCF_January:
+						if (data.dzien>31)
+						{	
+							data.dzien=0;
+						}
+						break;
+					case PCF_February:
+						if(!(data.rok % 4))
+						{
+							if (data.dzien>29)
+							{
+								data.dzien=0;
+							}	
+						}
+						else
+						{
+							if (data.dzien>28)
+							{
+								data.dzien=0;
+							}							
+						}
+
+						break;			
+					case PCF_March:
+						if (data.dzien>31)
+						{
+							data.dzien=0;
+						}
+						break;
+					case PCF_April:
+						if (data.dzien>30)
+						{
+							data.dzien=0;
+						}
+						break;
+					case PCF_May:
+						if (data.dzien>31)
+						{
+							data.dzien=0;
+						}
+						break;
+					case PCF_June:
+						if (data.dzien>30)
+						{
+							data.dzien=0;
+						}
+						break;
+					case PCF_July:
+						if (data.dzien>31)
+						{
+							data.dzien=0;
+						}
+						break;
+					case PCF_August:
+						if (data.dzien>31)
+						{
+							data.dzien=0;
+						}
+						break;
+					case PCF_September:
+						if (data.dzien>30)
+						{
+							data.dzien=0;
+						}
+						break;
+					case PCF_October:
+						if (data.dzien>31)
+						{
+							data.dzien=0;
+						}
+						break;
+					case PCF_November:
+						if (data.dzien>30)
+						{
+							data.dzien=0;
+						}
+						break;			
+					case PCF_December:
+						if (data.dzien>31)
+						{
+							data.dzien=0;
+						}
+						break;
+				}
+			}
+			else if (key_code == PRZYCISK_DOL && Flagi.flaga_klawiatura==0)
+			{
+				data.dzien--;
+				switch(data.miesiac)
+				{
+					case PCF_January:
+						if ((int8_t)data.dzien<0)
+						{
+							data.dzien=31;
+						}
+						break;
+					case PCF_February:
+						if(!(data.rok % 4))
+						{
+							if ((int8_t)data.dzien<0)
+							{
+								data.dzien=29;
+							}
+						}
+						else
+						{
+							if ((int8_t)data.dzien<0)
+							{
+								data.dzien=28;
+							}
+						}
+
+						break;
+					case PCF_March:
+						if ((int8_t)data.dzien<0)
+						{
+							data.dzien=31;
+						}
+						break;
+					case PCF_April:
+						if ((int8_t)data.dzien<0)
+						{
+							data.dzien=30;
+						}
+						break;
+					case PCF_May:
+						if ((int8_t)data.dzien<0)
+						{
+							data.dzien=31;
+						}
+						break;
+					case PCF_June:
+						if ((int8_t)data.dzien<0)
+						{
+							data.dzien=30;
+						}
+						break;
+					case PCF_July:
+						if ((int8_t)data.dzien<0)
+						{
+							data.dzien=31;
+						}
+						break;
+					case PCF_August:
+						if ((int8_t)data.dzien<0)
+						{
+							data.dzien=31;
+						}
+					break;
+					case PCF_September:
+						if ((int8_t)data.dzien<0)
+						{
+							data.dzien=30;
+						}
+						break;
+					case PCF_October:
+						if ((int8_t)data.dzien<0)
+						{
+							data.dzien=31;
+						}
+						break;
+					case PCF_November:
+						if ((int8_t)data.dzien<0)
+						{
+							data.dzien=30;
+						}
+						break;
+					case PCF_December:
+						if ((int8_t)data.dzien<0)
+						{
+							data.dzien=31;
+						}
+						break;
+				}
+			}
+			break;
+		case 3:
+			if (key_code == PRZYCISK_GORA && Flagi.flaga_klawiatura==0)
+			{
+				data.miesiac++;
+				if (data.miesiac>12)
+					data.miesiac=0;
+					
+				switch(data.miesiac)
+				{
+					case PCF_January:
+						break;
+					case PCF_February:
+						if(!(data.rok % 4))
+						{
+							if (data.dzien>29)
+							{
+								data.dzien=29;
+							}
+						}
+						else
+						{
+							if (data.dzien>28)
+							{
+								data.dzien=28;
+							}
+						}
+
+						break;
+					case PCF_March:
+
+						break;
+					case PCF_April:
+						if (data.dzien>30)
+						{
+							data.dzien=30;
+						}
+						break;
+					case PCF_May:
+						break;
+					case PCF_June:
+						if (data.dzien>30)
+						{
+							data.dzien=30;
+						}
+						break;
+					case PCF_July:
+						break;
+					case PCF_August:
+						break;
+					case PCF_September:
+						if (data.dzien>30)
+						{
+							data.dzien=30;
+						}
+						break;
+					case PCF_October:
+						break;
+					case PCF_November:
+						if (data.dzien>30)
+						{
+							data.dzien=30;
+						}
+						break;
+					case PCF_December:
+						break;
+				}
+			}
+			else if (key_code == PRZYCISK_DOL && Flagi.flaga_klawiatura==0)
+			{
+				data.miesiac--;
+				if ((int8_t)data.miesiac<0)
+					data.miesiac=12;
+			}
+			break;
+		case 4:
+			if (key_code == PRZYCISK_GORA && Flagi.flaga_klawiatura==0)
+			{
+				data.rok++;
+			}
+			else if (key_code == PRZYCISK_DOL && Flagi.flaga_klawiatura==0)
+			{
+				data.rok--;
+			}
+			break;
+		default:
+			if(Flagi.flaga_rtc)
+			{
+				pobierz_date(&data);
+				Flagi.flaga_rtc=0;
+			}
+			break;
+	}
+	
+	switch(state)
+	{
+		case 0:
+			state=1;
+			
+			if (!i)
+			{
+			lcd_wyswietl_date(&data, str, edit);
+			lcd_locate(1,0);
+			lcd_str(str);
+			}
+			else
+			{
+				if(edit==3 || edit==4)
+					lcd_wyswietl_date(&data, str, 5);
+				else
+					lcd_wyswietl_date(&data, str, 0);
+					lcd_locate(1,0);
+					lcd_str(str);
+			}
+			
+			cli();
+			cnt=50000;
+			offset_cnt=licznik;
+			sei();
+			break;
+		case 1:
+			if(cnt<=licznik-offset_cnt)
+			{
+				i=~i;
+				state=0;
+			}
+			break;
 	}
 }
 void M11_func_ustawienia_godzina(char *str)

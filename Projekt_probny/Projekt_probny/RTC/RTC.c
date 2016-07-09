@@ -138,14 +138,25 @@ void lcd_wyswietl_date(Data *data, char *bufor, uint8_t wyl_czesc_daty)
 		case 4:
 			nadpisz_bufor_spacjami(rok_tmp); break;	
 	}
-	if (wyl_czesc_daty==3 || wyl_czesc_daty==4)
+	if (wyl_czesc_daty==3 || wyl_czesc_daty==4 || wyl_czesc_daty==5)
 	{
-		strcpy(bufor, dzien_tmp);
-		strcat(bufor, " ");
-		strcat(bufor, miesiac_tmp);
-		strcat(bufor, " ");
-		strcat(bufor, rok_tmp);
-		strcat(bufor, " ");
+		if (data->miesiac==PCF_October)
+		{
+			strcpy(bufor, miesiac_tmp);
+			strcat(bufor, " ");
+			strcat(bufor, rok_tmp);
+			strcat(bufor, "      ");
+		}
+		else
+		{
+			strcpy(bufor, dzien_tmp);
+			strcat(bufor, " ");
+			strcat(bufor, miesiac_tmp);
+			strcat(bufor, " ");
+			strcat(bufor, rok_tmp);
+			strcat(bufor, "      ");
+		}
+
 		//sprintf(bufor_,"%s %s %s ", dzien_tmp,  miesiac_tmp, rok_tmp);
 	}
 	else
@@ -157,7 +168,7 @@ void lcd_wyswietl_date(Data *data, char *bufor, uint8_t wyl_czesc_daty)
 		strcat(bufor, miesiac_tmp);
 		strcat(bufor, " ");
 		strcat(bufor, rok_tmp);
-		strcat(bufor, " ");
+		strcat(bufor, "      ");
 		//sprintf(bufor,"%s, %s %s %s ", dzien_tygodnia_tmp, dzien_tmp,  miesiac_tmp, rok_tmp);
 	}
 }
