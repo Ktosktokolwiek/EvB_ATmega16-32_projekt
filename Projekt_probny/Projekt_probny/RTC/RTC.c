@@ -126,6 +126,8 @@ void lcd_wyswietl_date(Data *data, char *bufor, uint8_t wyl_czesc_daty)
 	itoa(data->dzien, dzien_tmp, 10);
 	if( data->rok < 10 ) 
 		strcpy(rok_tmp, "200");
+	else if ( data->rok > 99 )
+		strcpy(rok_tmp, "2");
 	else
 		strcpy(rok_tmp, "20");
 	strcat(rok_tmp, itoa(data->rok, tmp, 10));
