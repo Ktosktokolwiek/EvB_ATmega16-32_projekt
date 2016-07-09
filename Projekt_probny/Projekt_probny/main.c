@@ -70,8 +70,8 @@ struct menu m1_ustawienia = {&m0_wyswietl, &m0_wyswietl, NULL, &m10_u_data, offs
 	struct menu m12_u_lcd = {&m11_u_godzina, &m10_u_data, &m1_ustawienia, NULL, offsetof(EXT_EEPROM_var, m12), SIZEOF (EXT_EEPROM_var, m12), M12_func_ustawienia_lcd };
 MENU *menu_ptr=&m0_wyswietl;
 
-EEMEM Data deafult_data={0x01, 0x05, 0x07, 0x16};
-EEMEM Czas deafult_czas={0x00,0x00,0x09};
+EEMEM Data deafult_data={1, 5, 7, 16};
+EEMEM Czas deafult_czas={0,0,9};
 EEMEM Ustawienia deafult_flags ={1};
 	
 // procedura obs³ugi przerwania INT 0
@@ -198,9 +198,9 @@ int main(void)
 		
 		if (menu_func_active)
 		{
+			EI2C_read_buf(ADDR_EEMEM_24C64, menu_ptr->addr_ext_eeprom, menu_ptr->size_ext_eeprom, (uint8_t *)bufor_lcd);
 			if(Flagi.flaga_lcd)
 			{
-				EI2C_read_buf(ADDR_EEMEM_24C64, menu_ptr->addr_ext_eeprom, menu_ptr->size_ext_eeprom, (uint8_t *)bufor_lcd);
 				lcd_locate(0, 0);
 			}
 
@@ -364,9 +364,9 @@ void M11_func_ustawienia_godzina(char *str)
 		lcd_locate(0, 10);
 		lcd_char(0x7E);
 		lcd_str(str);
-		//EI2C_read_buf(ADDR_EEMEM_24C64, offsetof(EXT_EEPROM_var, empty), SIZEOF (EXT_EEPROM_var, empty), (uint8_t *)str);
-		//lcd_locate(1, 0);
-		//lcd_str(str);
+		EI2C_read_buf(ADDR_EEMEM_24C64, offsetof(EXT_EEPROM_var, empty), SIZEOF (EXT_EEPROM_var, empty), (uint8_t *)str);
+		lcd_locate(1, 0);
+		lcd_str(str);
 		Flagi.flaga_lcd=0;
 	}
 
@@ -374,6 +374,13 @@ void M11_func_ustawienia_godzina(char *str)
 	{
 		case 0:
 			state=1;	
+			
+			if(i>8)
+				i=0;
+			lcd_locate(0, 10);
+			lcd_char(0x7E);
+			fifo_bufor_lcd(str,i,strlen(str));
+			lcd_str(str);
 			
 			cli();
 			cnt=25000;
@@ -384,22 +391,16 @@ void M11_func_ustawienia_godzina(char *str)
 			if(cnt<=licznik-offset_cnt)
 			{
 				i++;
-				if(i>8)
-					i=0;
-				lcd_locate(0, 10);
-				lcd_char(0x7E);
-				fifo_bufor_lcd(str,i,strlen(str));
-				lcd_str(str);
 				state=0;
 			}
 			break;
 	}
-	/*
+	
 	if (key_code == PRZYCISK_ENTER)
 	{
 		edit++;
 		if (edit>3)
-			edit=0;
+			edit=1;
 		Flagi.flaga_klawiatura=0;
 	}
 	else if (key_code == PRZYCISK_POWROT && Flagi.flaga_klawiatura==0)
@@ -408,84 +409,99 @@ void M11_func_ustawienia_godzina(char *str)
 		Flagi.flaga_klawiatura=1;
 		ustaw_czas(&czas);
 	}
-	else if (key_code == PRZYCISK_DOL && Flagi.flaga_klawiatura==0)
-	{
-		switch(edit)
-		{
-			case 1: 
-					czas.godziny-1;
-					if (czas.godziny>23)
-						czas.godziny=0;
-					break;
-			case 2:
-					czas.minuty-1;
-					if (czas.minuty>59)
-					czas.minuty=0;
-					break;
-			case 3:
-					czas.sekundy-1;
-					if (czas.sekundy>59)
-					czas.sekundy=0;
-					break;					
-		}
-	}
-	else if (key_code == PRZYCISK_GORA && Flagi.flaga_klawiatura==0)
-	{
-				switch(edit)
-				{
-					case 1:
-							czas.godziny+1;
-							if (czas.godziny>23)
-							czas.godziny=0;
-							break;
-					case 2:
-							czas.minuty+1;
-							if (czas.minuty>59)
-							czas.minuty=0;
-							break;
-					case 3:
-							czas.sekundy+1;
-							if (czas.sekundy>59)
-							czas.sekundy=0;
-							break;
-				}
-	}
+	
 	
 	switch(edit)
 	{
 		case 1:
+			if (key_code == PRZYCISK_GORA && Flagi.flaga_klawiatura==0)
+			{
+				czas.godziny++;
+				if(czas.godziny>23)
+					czas.godziny=0;
+				lcd_locate(1,0);
+				if( czas.godziny < 10 ) lcd_char('0');
+				lcd_int(czas.godziny);
+			}
+			else if (key_code == PRZYCISK_DOL && Flagi.flaga_klawiatura==0)
+			{
+				czas.godziny--;
+				if((int8_t)czas.godziny<0)
+					czas.godziny=23;	
+				lcd_locate(1,0);
+				if( czas.godziny < 10 ) lcd_char('0');
+				lcd_int(czas.godziny);
+			}
+
 			lcd_cursor_on();
 			lcd_blink_on();
-			lcd_locate(1,0);
 			lcd_locate(1,1);
 			break;
 		case 2:
+			if (key_code == PRZYCISK_GORA && Flagi.flaga_klawiatura==0)
+			{
+				czas.minuty++;
+				if(czas.minuty>59)
+				czas.minuty=0;
+				lcd_locate(1,3);
+				if( czas.minuty < 10 ) lcd_char('0');
+				lcd_int(czas.minuty);
+			}
+			else if (key_code == PRZYCISK_DOL && Flagi.flaga_klawiatura==0)
+			{
+				czas.minuty--;
+				if((int8_t)czas.minuty<0)
+				czas.minuty=59;
+				lcd_locate(1,3);
+				if( czas.minuty < 10 ) lcd_char('0');
+				lcd_int(czas.minuty);
+			}
 			lcd_cursor_on();
 			lcd_blink_on();
-			lcd_locate(1,3);
 			lcd_locate(1,4);
 			break;
 		case 3:
+			if (key_code == PRZYCISK_GORA && Flagi.flaga_klawiatura==0)
+			{
+				czas.sekundy++;
+				if(czas.sekundy>59)
+				czas.sekundy=0;
+				lcd_locate(1,6);
+				if( czas.sekundy < 10 ) lcd_char('0');
+				lcd_int(czas.sekundy);
+			}
+			else if (key_code == PRZYCISK_DOL && Flagi.flaga_klawiatura==0)
+			{
+				czas.sekundy--;
+				if((int8_t)czas.sekundy<0)
+				czas.sekundy=59;
+				lcd_locate(1,6);
+				if( czas.sekundy < 10 ) lcd_char('0');
+				lcd_int(czas.sekundy);
+			}
 			lcd_cursor_on();
 			lcd_blink_on();
-			lcd_locate(1,5);
-			lcd_locate(1,6);
-		break;
+			lcd_locate(1,7);
+			break;
 		default:
 			lcd_cursor_off();
 			lcd_blink_off();
+			if(Flagi.flaga_rtc)
+			{
+				pobierz_czas(&czas);
+				Flagi.flaga_rtc=0;
+			}
+			lcd_locate(1,0);
+			if( czas.godziny < 10 ) lcd_char('0');
+			lcd_int(czas.godziny);
+			lcd_char(':');
+			if( czas.minuty < 10 ) lcd_char('0');
+			lcd_int(czas.minuty);
+			lcd_char(':');
+			if( czas.sekundy < 10 ) lcd_char('0');
+			lcd_int(czas.sekundy);
+		break;
 	}
-	lcd_cursor_off();
-	lcd_locate(1,0);
-	if( czas.godziny < 10 ) lcd_char('0');
-	lcd_int(czas.godziny);
-	lcd_char(':');
-	if( czas.minuty < 10 ) lcd_char('0');
-	lcd_int(czas.minuty);
-	lcd_char(':');
-	if( czas.sekundy < 10 ) lcd_char('0');
-	lcd_int(czas.sekundy);
-	*/
 
 }
 void M12_func_ustawienia_lcd(char *str)

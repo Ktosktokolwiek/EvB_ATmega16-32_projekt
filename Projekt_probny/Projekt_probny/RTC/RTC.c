@@ -18,9 +18,9 @@
 void ustaw_czas(Czas *czas)
 {
 	uint8_t bufor[3];
-	bufor[0]=czas->sekundy;
-	bufor[1]=czas->minuty;
-	bufor[2]=czas->godziny;
+	bufor[0]=bin2bcd(czas->sekundy);
+	bufor[1]=bin2bcd(czas->minuty);
+	bufor[2]=bin2bcd(czas->godziny);
 	
 	TWI_write_buf( ADDR_PCF8583, SecondsReg, 3, bufor );
 }
@@ -28,10 +28,10 @@ void ustaw_czas(Czas *czas)
 void ustaw_date(Data *data)
 {
 	uint8_t bufor[4];
-	bufor[0]=data->dzien;
-	bufor[1]=data->dzien_tygodnia;
-	bufor[2]=data->miesiac;
-	bufor[3]=data->rok;
+	bufor[0]=bin2bcd(data->dzien);
+	bufor[1]=bin2bcd(data->dzien_tygodnia);
+	bufor[2]=bin2bcd(data->miesiac);
+	bufor[3]=bin2bcd(data->rok);
 	
 	TWI_write_buf( ADDR_PCF8583, DaysReg, 4, bufor );
 }
