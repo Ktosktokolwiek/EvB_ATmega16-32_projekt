@@ -47,11 +47,21 @@ void pobierz_czas(Czas *czas)
 void pobierz_date(Data *data)
 {
 	uint8_t bufor[4];
+	static uint8_t nowy_rok=0;
 	
 	TWI_read_buf(ADDR_PCF8583, YearDateReg, 2, bufor);
 	data->dzien = bcd2bin(bufor[0] & DZIEN_MASK);
 	data->dzien_tygodnia = (bufor[1] & DZIEN_TYG_MASK)>>5;
 	data->miesiac = bcd2bin(bufor[1] & MIESIAC_MASK);
+	if (data->dzien==1 && data->miesiac==PCF_January && nowy_rok==1)
+	{
+		data->rok++;
+		eeprom_write_word(&rok,data->rok);
+		nowy_rok=0;
+	}
+	else if(data->dzien==31 && data->miesiac==PCF_December && nowy_rok==0)
+		nowy_rok=1;
+	
 	data->rok=eeprom_read_word(&rok);
 	//data->rok = bufor[0] & ROK_MASK;
 }

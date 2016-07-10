@@ -257,7 +257,7 @@ void M0(char *str)
 {	
 	static uint8_t state=0, i=0;
 	static uint32_t cnt=0, offset_cnt=0;
-	static char buf[41];
+	static char buf[41], buf_lcd[9];
 	if(Flagi.flaga_lcd)
 	{
 		lcd_locate(0, 0);
@@ -295,7 +295,8 @@ void M0(char *str)
 				lcd_wyswietl_date(&data, buf, 0);
 				fifo_bufor_lcd(buf, i, strlen(buf));
 				lcd_locate(1,8);
-				lcd_str(buf);
+				strncpy(buf_lcd,buf,sizeof(buf_lcd)-1);
+				lcd_str(buf_lcd);
 				
 				cli();
 				cnt=25000;
@@ -379,7 +380,7 @@ void M10_func_ustawienia_data(char *str)
 					case PCF_January:
 						if (data.dzien>31)
 						{	
-							data.dzien=0;
+							data.dzien=1;
 						}
 						break;
 					case PCF_February:
@@ -387,14 +388,14 @@ void M10_func_ustawienia_data(char *str)
 						{
 							if (data.dzien>29)
 							{
-								data.dzien=0;
+								data.dzien=1;
 							}	
 						}
 						else
 						{
 							if (data.dzien>28)
 							{
-								data.dzien=0;
+								data.dzien=1;
 							}							
 						}
 
@@ -402,61 +403,61 @@ void M10_func_ustawienia_data(char *str)
 					case PCF_March:
 						if (data.dzien>31)
 						{
-							data.dzien=0;
+							data.dzien=1;
 						}
 						break;
 					case PCF_April:
 						if (data.dzien>30)
 						{
-							data.dzien=0;
+							data.dzien=1;
 						}
 						break;
 					case PCF_May:
 						if (data.dzien>31)
 						{
-							data.dzien=0;
+							data.dzien=1;
 						}
 						break;
 					case PCF_June:
 						if (data.dzien>30)
 						{
-							data.dzien=0;
+							data.dzien=1;
 						}
 						break;
 					case PCF_July:
 						if (data.dzien>31)
 						{
-							data.dzien=0;
+							data.dzien=1;
 						}
 						break;
 					case PCF_August:
 						if (data.dzien>31)
 						{
-							data.dzien=0;
+							data.dzien=1;
 						}
 						break;
 					case PCF_September:
 						if (data.dzien>30)
 						{
-							data.dzien=0;
+							data.dzien=1;
 						}
 						break;
 					case PCF_October:
 						if (data.dzien>31)
 						{
-							data.dzien=0;
+							data.dzien=1;
 						}
 						break;
 					case PCF_November:
 						if (data.dzien>30)
 						{
-							data.dzien=0;
+							data.dzien=1;
 						}
 						break;			
 					case PCF_December:
 						if (data.dzien>31)
 						{
-							data.dzien=0;
+							data.dzien=1;
 						}
 						break;
 				}
@@ -467,7 +468,7 @@ void M10_func_ustawienia_data(char *str)
 				switch(data.miesiac)
 				{
 					case PCF_January:
-						if ((int8_t)data.dzien<0)
+						if ((int8_t)data.dzien<1)
 						{
 							data.dzien=31;
 						}
@@ -475,14 +476,14 @@ void M10_func_ustawienia_data(char *str)
 					case PCF_February:
 						if(!(data.rok % 4))
 						{
-							if ((int8_t)data.dzien<0)
+							if ((int8_t)data.dzien<1)
 							{
 								data.dzien=29;
 							}
 						}
 						else
 						{
-							if ((int8_t)data.dzien<0)
+							if ((int8_t)data.dzien<1)
 							{
 								data.dzien=28;
 							}
@@ -490,61 +491,61 @@ void M10_func_ustawienia_data(char *str)
 
 						break;
 					case PCF_March:
-						if ((int8_t)data.dzien<0)
+						if ((int8_t)data.dzien<1)
 						{
 							data.dzien=31;
 						}
 						break;
 					case PCF_April:
-						if ((int8_t)data.dzien<0)
+						if ((int8_t)data.dzien<1)
 						{
 							data.dzien=30;
 						}
 						break;
 					case PCF_May:
-						if ((int8_t)data.dzien<0)
+						if ((int8_t)data.dzien<1)
 						{
 							data.dzien=31;
 						}
 						break;
 					case PCF_June:
-						if ((int8_t)data.dzien<0)
+						if ((int8_t)data.dzien<1)
 						{
 							data.dzien=30;
 						}
 						break;
 					case PCF_July:
-						if ((int8_t)data.dzien<0)
+						if ((int8_t)data.dzien<1)
 						{
 							data.dzien=31;
 						}
 						break;
 					case PCF_August:
-						if ((int8_t)data.dzien<0)
+						if ((int8_t)data.dzien<1)
 						{
 							data.dzien=31;
 						}
 					break;
 					case PCF_September:
-						if ((int8_t)data.dzien<0)
+						if ((int8_t)data.dzien<1)
 						{
 							data.dzien=30;
 						}
 						break;
 					case PCF_October:
-						if ((int8_t)data.dzien<0)
+						if ((int8_t)data.dzien<1)
 						{
 							data.dzien=31;
 						}
 						break;
 					case PCF_November:
-						if ((int8_t)data.dzien<0)
+						if ((int8_t)data.dzien<1)
 						{
 							data.dzien=30;
 						}
 						break;
 					case PCF_December:
-						if ((int8_t)data.dzien<0)
+						if ((int8_t)data.dzien<1)
 						{
 							data.dzien=31;
 						}
@@ -630,14 +631,10 @@ void M10_func_ustawienia_data(char *str)
 			if (key_code == PRZYCISK_GORA && Flagi.flaga_klawiatura==0)
 			{
 				data.rok++;
-				if (data.rok>99)
-					data.rok=0;
 			}
 			else if (key_code == PRZYCISK_DOL && Flagi.flaga_klawiatura==0)
 			{
 				data.rok--;
-				if ((int8_t)data.rok<0)
-					data.rok=99;
 			}
 			break;
 		default:
