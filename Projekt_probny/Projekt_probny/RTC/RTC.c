@@ -9,12 +9,12 @@
 #include <stdlib.h>
 #include <string.h>
 #include <stddef.h>
+#include <avr/eeprom.h>
 #include "../proces.h"
 #include "../I2C/I2C.h"
 #include "../ext_eeprom/24C64.h"
 #include "RTC.h"
-		
-	 
+	
 void ustaw_czas(Czas *czas)
 {
 	uint8_t bufor[3];
@@ -27,13 +27,11 @@ void ustaw_czas(Czas *czas)
 
 void ustaw_date(Data *data)
 {
-	uint8_t bufor[4];
-	bufor[0]=bin2bcd(data->dzien);
-	bufor[1]=bin2bcd(data->dzien_tygodnia);
-	bufor[2]=bin2bcd(data->miesiac);
-	bufor[3]=bin2bcd(data->rok);
-	
-	TWI_write_buf( ADDR_PCF8583, DaysReg, 4, bufor );
+	uint8_t bufor[2];
+	bufor[0]=bin2bcd(data->dzien) | ((data->rok % 4) << 6);
+	bufor[1]=bin2bcd(data->miesiac) | (data->dzien_tygodnia<<5);
+	eeprom_update_word(&rok,data->rok);
+	TWI_write_buf( ADDR_PCF8583, YearDateReg, 2, bufor );
 }
 
 void pobierz_czas(Czas *czas)
@@ -43,18 +41,19 @@ void pobierz_czas(Czas *czas)
 	TWI_read_buf(ADDR_PCF8583, SecondsReg, 3, bufor);
 	czas->sekundy=bcd2bin(bufor[0]);
 	czas->minuty=bcd2bin(bufor[1]);
-	czas->godziny=bcd2bin(bufor[2]);
+	czas->godziny=bcd2bin(bufor[2] & GODZINY_MASK);
 }
 
 void pobierz_date(Data *data)
 {
 	uint8_t bufor[4];
 	
-	TWI_read_buf(ADDR_PCF8583, DaysReg, 4, bufor);
-	data->dzien = bcd2bin(bufor[0]);
-	data->dzien_tygodnia = bin2bcd(bufor[1]);
-	data->miesiac = bcd2bin(bufor[2]);
-	data->rok = bcd2bin(bufor[3]);
+	TWI_read_buf(ADDR_PCF8583, YearDateReg, 2, bufor);
+	data->dzien = bcd2bin(bufor[0] & DZIEN_MASK);
+	data->dzien_tygodnia = (bufor[1] & DZIEN_TYG_MASK)>>5;
+	data->miesiac = bcd2bin(bufor[1] & MIESIAC_MASK);
+	data->rok=eeprom_read_word(&rok);
+	//data->rok = bufor[0] & ROK_MASK;
 }
 
 void lcd_wyswietl_date(Data *data, char *bufor, uint8_t wyl_czesc_daty)
@@ -62,7 +61,7 @@ void lcd_wyswietl_date(Data *data, char *bufor, uint8_t wyl_czesc_daty)
 	char dzien_tmp[3];
 	char dzien_tygodnia_tmp[17];
 	char miesiac_tmp[17];
-	char rok_tmp[5], tmp[3];
+	char rok_tmp[5];
 	
 	switch(data->dzien_tygodnia)
 	{
@@ -124,13 +123,7 @@ void lcd_wyswietl_date(Data *data, char *bufor, uint8_t wyl_czesc_daty)
 	}
 	
 	itoa(data->dzien, dzien_tmp, 10);
-	if( data->rok < 10 ) 
-		strcpy(rok_tmp, "200");
-	else if ( data->rok > 99 )
-		strcpy(rok_tmp, "2");
-	else
-		strcpy(rok_tmp, "20");
-	strcat(rok_tmp, itoa(data->rok, tmp, 10));
+	itoa(data->rok, rok_tmp, 10);
 	
 	switch(wyl_czesc_daty)
 	{

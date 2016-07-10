@@ -11,15 +11,16 @@
 
 #define ADDR_PCF8583 0xA2
 
-enum Registers {CntrlReg1=0, CntrlReg2=1, SecondsReg=2, MinutesReg=3, HoursReg=4,
-	DaysReg=5, WeekDaysReg=6, MonthsReg=7, YearsReg=8, MinuteAlarmReg=9,
-	HourAlarmReg=10, DayAlarmReg=11, WeekDayAlarmReg=12, CLKUOUTFreqReg=13,
-TimerCntrlReg=14, TimerCountDownReg=15};
-enum Alarm {AlarmDisable=128};
-enum Flags {PCF_TimeValid=128, PCF_CLKOUTActivate=128, PCF_CLKOUT1Hz=3,
-	PCF_CLKOUT32Hz=2, PCF_CLKOUT1024Hz=1, PCF_CLKOUT32768Hz=0, PCF_EnableTimer=128,
-	PCF_TimerClk4096Hz=0, PCF_TimerClk64Hz=1, PCF_TimerClk1Hz=2,
-PCF_TimerClk160sHz=3, PCF_AlarmInterruptEnabled=2, PCF_TimerInterruptEnabled=1};
+#define GODZINY_MASK	0x2F
+#define DZIEN_MASK		0x3F
+#define DZIEN_TYG_MASK	0xE0
+#define MIESIAC_MASK	0x1F
+#define ROK_MASK		0xC0
+
+enum Registers {CntrlReg=0, HundredthSecondsReg=1, SecondsReg=2, MinutesReg=3, HoursReg=4,
+	YearDateReg=5, WeekDaysMounthReg=6, TimerReg=7, AlarmCntrlReg=8, HundredthSecondsAlarmReg=9,
+	SecondsAlarmReg=10, MinutesAlarmReg=11, HoursAlarmReg=12, DataAlarmReg=13,
+	MonthAlarmReg=14, TimerAlarmReg=15};
 enum Days {PCF_Sunday, PCF_Monday, PCF_Tuesday, PCF_Wednesday, PCF_Thursday,
 PCF_Friday, PCF_Saturday};
 enum Months {PCF_January=1, PCF_February, PCF_March, PCF_April, PCF_May, PCF_June,
@@ -30,7 +31,7 @@ typedef struct
 	uint8_t dzien;
 	uint8_t dzien_tygodnia;
 	uint8_t miesiac;
-	uint8_t rok;
+	uint16_t rok;
 } Data;
 
 typedef struct

@@ -81,4 +81,5 @@ typedef struct menu
 	void (*funkcja)(char *str);
 } MENU;
 
+extern uint16_t rok;
 #endif /* PROCES_H_ */

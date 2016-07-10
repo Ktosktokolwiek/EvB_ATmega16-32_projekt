@@ -70,8 +70,9 @@ struct menu m1_ustawienia = {&m0_wyswietl, &m0_wyswietl, NULL, &m10_u_data, offs
 	struct menu m12_u_lcd = {&m11_u_godzina, &m10_u_data, &m1_ustawienia, NULL, offsetof(EXT_EEPROM_var, m12), SIZEOF (EXT_EEPROM_var, m12), M12_func_ustawienia_lcd };
 MENU *menu_ptr=&m0_wyswietl;
 
-EEMEM Data deafult_data={1, 5, 7, 16};
+EEMEM Data deafult_data={1, 0xA0, 7, 2016};
 EEMEM Czas deafult_czas={0,0,9};
+EEMEM uint16_t rok;
 EEMEM Ustawienia deafult_flags ={1};
 	
 // procedura obs³ugi przerwania INT 0
@@ -153,7 +154,6 @@ int main(void)
 	
 	i2cSetBitrate(100); //Ustaw prêdkoœæ i2c na 100kHz
 	lcd_init();
-
 	pobierz_czas(&czas);
 	pobierz_date(&data);
 	sei();
@@ -630,10 +630,14 @@ void M10_func_ustawienia_data(char *str)
 			if (key_code == PRZYCISK_GORA && Flagi.flaga_klawiatura==0)
 			{
 				data.rok++;
+				if (data.rok>99)
+					data.rok=0;
 			}
 			else if (key_code == PRZYCISK_DOL && Flagi.flaga_klawiatura==0)
 			{
 				data.rok--;
+				if ((int8_t)data.rok<0)
+					data.rok=99;
 			}
 			break;
 		default:
