@@ -41,7 +41,7 @@ void pobierz_czas(Czas *czas)
 	TWI_read_buf(ADDR_PCF8583, SecondsReg, 3, bufor);
 	czas->sekundy=bcd2bin(bufor[0]);
 	czas->minuty=bcd2bin(bufor[1]);
-	czas->godziny=bcd2bin(bufor[2] & GODZINY_MASK);
+	czas->godziny=bcd2bin(bufor[2]);
 }
 
 void pobierz_date(Data *data)

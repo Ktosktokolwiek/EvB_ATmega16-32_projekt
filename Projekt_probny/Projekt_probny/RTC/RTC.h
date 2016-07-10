@@ -11,7 +11,6 @@
 
 #define ADDR_PCF8583 0xA2
 
-#define GODZINY_MASK	0x2F
 #define DZIEN_MASK		0x3F
 #define DZIEN_TYG_MASK	0xE0
 #define MIESIAC_MASK	0x1F
