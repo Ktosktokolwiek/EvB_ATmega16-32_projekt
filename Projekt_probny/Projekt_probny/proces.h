@@ -9,7 +9,6 @@
 #ifndef PROCES_H_
 #define PROCES_H_
 
-#define F_CPU 16000000UL
 #define ADDR_VAR_EXT_EEPROM(a) offsetof(EXT_EEPROM_var, a)
 //Deklaracje zmiennych
 

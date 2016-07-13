@@ -19,23 +19,23 @@
 #include "LCD/LCD.h"
 #include "klawiatura/klawiatura.h"
 #include "RTC/RTC.h"
+#include "Temperatura/ds18x20.h"
 
 #define _EXT_EEPROM_EMPTY 0 //Ustaw 1 jeœli pamiêæ external eeprom jest niezaprogramowana;
 
 //****** ZMIENNE GLOBALNE i FUNKCJE LOKALNE ******
 #if _EXT_EEPROM_EMPTY==0
-volatile uint32_t licznik;
+volatile uint32_t licznik, termometr_licznik;
 Data data;
 Czas czas;
-uint8_t key_code;
 
-struct flagi
-{
-	uint8_t flaga_lcd			:1; //Flaga pomocnicza przy wyœwietlaniu nazw menu
-	volatile uint8_t flaga_rtc	:1; //Flaga wykorzystywana w przerwaniach przez RTC
-	uint8_t	flaga_klawiatura	:1;	//Flaga pomocnicza w obs³udze klawiatury
-}Flagi;
+uint8_t key_code;		//Zmienna przechowuj¹ca odczyt z klawiatury
+uint8_t czujniki_cnt;	//Zmienna przechowuj¹ca liczbê znalezionych czujników na magistrali 1-wire
 
+//Zmienne dotycz¹ce czujnika temperatury:
+uint8_t subzero, cel, cel_fract_bits;
+
+void display_temp(uint8_t x);
 void fifo_bufor_lcd(char *bufor, uint8_t iteracje, size_t rozmiar);
 void M0(char *str);
 void M1_func_ustawienia(char *str);
@@ -43,6 +43,11 @@ void M10_func_ustawienia_data(char *str);
 void M11_func_ustawienia_godzina(char *str);
 void M12_func_ustawienia_lcd(char *str);
 
+EEMEM Data deafult_data={1, 0xA0, 7, 2016};
+EEMEM Czas deafult_czas={0,0,9};
+EEMEM uint16_t rok;
+EEMEM Ustawienia deafult_flags ={1};
+	
 // Zmienne dotycz¹ce menu
 /*
 typedef struct menu
@@ -61,7 +66,7 @@ struct menu m0_wyswietl,
 			m1_ustawienia, 
 				m10_u_data, 
 				m11_u_godzina,
-				 m12_u_lcd;
+				m12_u_lcd;
 
 struct menu m0_wyswietl = {&m1_ustawienia, &m1_ustawienia, NULL, NULL, offsetof(EXT_EEPROM_var, empty), SIZEOF (EXT_EEPROM_var, empty), M0};
 struct menu m1_ustawienia = {&m0_wyswietl, &m0_wyswietl, NULL, &m10_u_data, offsetof(EXT_EEPROM_var, m1), SIZEOF (EXT_EEPROM_var, m1), M1_func_ustawienia };
@@ -70,11 +75,15 @@ struct menu m1_ustawienia = {&m0_wyswietl, &m0_wyswietl, NULL, &m10_u_data, offs
 	struct menu m12_u_lcd = {&m11_u_godzina, &m10_u_data, &m1_ustawienia, NULL, offsetof(EXT_EEPROM_var, m12), SIZEOF (EXT_EEPROM_var, m12), M12_func_ustawienia_lcd };
 MENU *menu_ptr=&m0_wyswietl;
 
-EEMEM Data deafult_data={1, 0xA0, 7, 2016};
-EEMEM Czas deafult_czas={0,0,9};
-EEMEM uint16_t rok;
-EEMEM Ustawienia deafult_flags ={1};
-	
+struct flagi
+{
+	uint8_t flaga_lcd			:1; //Flaga pomocnicza przy wyœwietlaniu nazw menu
+	volatile uint8_t flaga_rtc	:1; //Flaga wykorzystywana w przerwaniach przez RTC
+	uint8_t	flaga_klawiatura	:1;	//Flaga pomocnicza w obs³udze klawiatury
+	volatile uint8_t flaga_term	:1; //Flaga pomocnicza przy obs³udze termometru
+	uint8_t flaga_menu_func		:1; //Flaga pomocnicza aktywuj¹ca/deaktywuj¹ca funkcje menu
+} Flagi;
+
 // procedura obs³ugi przerwania INT 0
 ISR( INT0_vect ) {
 	Flagi.flaga_rtc = 1;
@@ -83,6 +92,8 @@ ISR( INT0_vect ) {
 ISR(TIMER0_COMP_vect)
 {
 	licznik++;
+	if(termometr_licznik++>100000)
+		Flagi.flaga_term=1;
 }
 #endif	 // _EXT_EEPROM_EMPTY
 
@@ -129,13 +140,16 @@ int main(void)
 #endif // _EXT_EEPROM_EMPTY
 
 #if _EXT_EEPROM_EMPTY==0
+
 	char bufor_lcd[41];	//Bufor przechowuj¹cy znaki z pamiêci EEPROM
-	uint8_t menu_func_active=1;
+	
+	//Zmienne wykorzystywane w opóŸnieniach:
 	uint8_t state=0;
 	uint32_t cnt=0, offset_cnt=0;
-	
+
 	Ustawienia ustawienia;	//Struktura s³u¿¹ca do odczytania ustawieñ z EEPROM
 	ustawienia.ustawienia_poczatkowe=0;
+	
 	//Ustaw PORTB jak wyjœcie dla LED:
 	DDRB=0xFF;
 	PORTB=0x00;
@@ -156,6 +170,28 @@ int main(void)
 	lcd_init();
 	pobierz_czas(&czas);
 	pobierz_date(&data);
+
+	/* sprawdzamy ile czujników DS18xxx widocznych jest na magistrali */
+	czujniki_cnt = search_sensors();
+
+	/* wysy³amy rozkaz wykonania pomiaru temperatury
+	 * do wszystkich czujników na magistrali 1Wire
+	 * zak³adaj¹c, ¿e zasilane s¹ w trybie NORMAL,
+	 * gdyby by³ to tryb Parasite, nale¿a³oby u¿yæ
+	 * jako pierwszego prarametru DS18X20_POWER_PARASITE */
+	DS18X20_start_meas( DS18X20_POWER_EXTERN, NULL );
+	
+	/* czekamy 750ms na dokonanie konwersji przez pod³¹czone czujniki */
+	_delay_ms(750);
+
+	/* dokonujemy odczytu temperatury z pierwszego czujnika o ile zosta³ wykryty */
+	/* wyœwietlamy temperaturê gdy czujnik wykryty */
+	if( DS18X20_OK == DS18X20_read_meas(gSensorIDs[0], &subzero, &cel, &cel_fract_bits) ) display_temp(0);
+	else {
+		lcd_locate(0,0);
+		lcd_str("term. error ");	/* wyœwietlamy informacjê o b³êdzie jeœli np brak czujnika lub b³¹d odczytu */
+	}
+
 	sei();
 #endif	 // _EXT_EEPROM_EMPTY
     while (1) 
@@ -196,7 +232,7 @@ int main(void)
 					break;
 		}
 		
-		if (menu_func_active)
+		if (Flagi.flaga_menu_func==1)
 		{
 			EI2C_read_buf(ADDR_EEMEM_24C64, menu_ptr->addr_ext_eeprom, menu_ptr->size_ext_eeprom, (uint8_t *)bufor_lcd);
 			if(Flagi.flaga_lcd)
@@ -207,7 +243,7 @@ int main(void)
 			(*menu_ptr->funkcja)(bufor_lcd);		//WskaŸnik na funkcje dla danej pozycji menu
 		}
 
-		if(Flagi.flaga_klawiatura)
+		if(Flagi.flaga_klawiatura==1)
 		{	
 			if (key_code == PRZYCISK_PRAWO)
 			{
@@ -244,18 +280,19 @@ int main(void)
 		}
 		
 		if(menu_ptr->funkcja!=NULL)
-			menu_func_active=1;
+			Flagi.flaga_menu_func=1;
 		else
-			menu_func_active=0;
+			Flagi.flaga_menu_func=0;
 
 #endif  // _EXT_EEPROM_EMPTY
     }
 }
 
 #if _EXT_EEPROM_EMPTY==0
+
 void M0(char *str)
 {	
-	static uint8_t state=0, i=0;
+	static uint8_t state=0, term_state=0, i=0;
 	static uint32_t cnt=0, offset_cnt=0;
 	static char buf[41], buf_lcd[9];
 	if(Flagi.flaga_lcd)
@@ -265,6 +302,26 @@ void M0(char *str)
 		lcd_locate(1, 0);
 		lcd_str(str);
 		Flagi.flaga_lcd=0;
+	}
+	if (Flagi.flaga_term)
+	{
+		switch(term_state)
+		{
+			case 0:
+					DS18X20_start_meas( DS18X20_POWER_EXTERN, NULL );
+					term_state=1;
+					break;
+			case 1:
+					if( DS18X20_OK == DS18X20_read_meas(gSensorIDs[0], &subzero, &cel, &cel_fract_bits) ) display_temp(0);
+					else {
+						lcd_locate(0,0);
+						lcd_str("term. error ");	/* wyœwietlamy informacjê o b³êdzie jeœli np brak czujnika lub b³¹d odczytu */
+					}
+					term_state=0;
+					break;
+		}
+		Flagi.flaga_term=0;
+
 	}
 	
 	if(Flagi.flaga_rtc)
@@ -859,4 +916,17 @@ void fifo_bufor_lcd(char *bufor, uint8_t iteracje, size_t rozmiar)
 		bufor[rozmiar-1]=buf;
 	}
 }
+
+/* wyœwietlanie temperatury na pozycji X w pierwszej linii LCD */
+void display_temp(uint8_t x) {
+	lcd_locate(0,x);
+	if(subzero) lcd_str("-");	/* jeœli subzero==1 wyœwietla znak minus (temp. ujemna) */
+	else lcd_str(" ");	/* jeœli subzero==0 wyœwietl spacjê zamiast znaku minus (temp. dodatnia) */
+	lcd_int(cel);	/* wyœwietl dziesiêtne czêœci temperatury  */
+	lcd_str(".");	/* wyœwietl kropkê */
+	lcd_int(cel_fract_bits); /* wyœwietl dziesiêtne czêœci stopnia */
+	lcd_str(" C"); /* wyœwietl znak jednostek (C - stopnie Celsiusza) */
+	lcd_char(0xDF);
+}
+
 #endif  // _EXT_EEPROM_EMPTY
