@@ -38,6 +38,17 @@ typedef struct
 
 extern volatile uint32_t licznik;
 
+struct flagi
+{
+	uint8_t flaga_lcd			:1; //Flaga pomocnicza przy wyœwietlaniu nazw menu
+	volatile uint8_t flaga_rtc	:1; //Flaga wykorzystywana w przerwaniach przez RTC
+	uint8_t	flaga_klawiatura	:1;	//Flaga pomocnicza w obs³udze klawiatury
+	volatile uint8_t flaga_term	:1; //Flaga pomocnicza przy obs³udze termometru
+	uint8_t flaga_menu_func		:1; //Flaga pomocnicza aktywuj¹ca/deaktywuj¹ca funkcje menu
+	volatile uint8_t light_lcd	:1; //Flaga pomocnicza przy podœwietlaniu lcd
+};
+extern struct flagi Flagi;
+
 // Struktura zawieraj¹ca zmienne w zewnêtrznej pamiêci eeprom
 typedef struct
 {

@@ -165,7 +165,6 @@ uint8_t licznik_funkcji_wewnetrznych_lcd;
 
 
 // deklaracje funkcji na potrzeby innych modu³ów
-void Light_ONOFF_LCD(uint8_t bl);
 
 void lcd_init(void);								// W£¥CZONA na sta³e do kompilacji
 void lcd_cls(void);									// W£¥CZONA na sta³e do kompilacji
@@ -188,4 +187,5 @@ void lcd_cursor_off(void);							// domyœlnie wy³¹czona z kompilacji w pliku lcd
 void lcd_blink_on(void);							// domyœlnie wy³¹czona z kompilacji w pliku lcd.c
 void lcd_blink_off(void);							// domyœlnie wy³¹czona z kompilacji w pliku lcd.c
 
+void lcd_light(uint8_t var);
 #endif /* LCD_H_ */

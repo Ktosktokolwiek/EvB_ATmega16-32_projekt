@@ -12,6 +12,7 @@
 #include <string.h>
 #include <avr/interrupt.h>
 #include <avr/eeprom.h>
+#include <avr/sleep.h>
 #include "proces.h"
 #include <util/delay.h>
 #include "I2C/I2C.h"
@@ -75,14 +76,7 @@ struct menu m1_ustawienia = {&m0_wyswietl, &m0_wyswietl, NULL, &m10_u_data, offs
 	struct menu m12_u_lcd = {&m11_u_godzina, &m10_u_data, &m1_ustawienia, NULL, offsetof(EXT_EEPROM_var, m12), SIZEOF (EXT_EEPROM_var, m12), M12_func_ustawienia_lcd };
 MENU *menu_ptr=&m0_wyswietl;
 
-struct flagi
-{
-	uint8_t flaga_lcd			:1; //Flaga pomocnicza przy wyœwietlaniu nazw menu
-	volatile uint8_t flaga_rtc	:1; //Flaga wykorzystywana w przerwaniach przez RTC
-	uint8_t	flaga_klawiatura	:1;	//Flaga pomocnicza w obs³udze klawiatury
-	volatile uint8_t flaga_term	:1; //Flaga pomocnicza przy obs³udze termometru
-	uint8_t flaga_menu_func		:1; //Flaga pomocnicza aktywuj¹ca/deaktywuj¹ca funkcje menu
-} Flagi;
+struct flagi Flagi;
 
 // procedura obs³ugi przerwania INT 0
 ISR( INT0_vect ) {
@@ -146,7 +140,9 @@ int main(void)
 	//Zmienne wykorzystywane w opóŸnieniach:
 	uint8_t state=0;
 	uint32_t cnt=0, offset_cnt=0;
-
+	uint8_t state_light=0;
+	uint32_t cnt_light=0, offset_cnt_light=0;
+	
 	Ustawienia ustawienia;	//Struktura s³u¿¹ca do odczytania ustawieñ z EEPROM
 	ustawienia.ustawienia_poczatkowe=0;
 	
@@ -191,8 +187,7 @@ int main(void)
 		lcd_locate(0,0);
 		lcd_str("term. error ");	/* wyœwietlamy informacjê o b³êdzie jeœli np brak czujnika lub b³¹d odczytu */
 	}
-
-	sei();
+	
 #endif	 // _EXT_EEPROM_EMPTY
     while (1) 
     {	
@@ -208,8 +203,32 @@ int main(void)
 			ustawienia.ustawienia_poczatkowe=0;
 			eeprom_update_block(&ustawienia, &deafult_flags, sizeof(deafult_flags));
 		}
+
+		switch(state_light)
+		{
+			case 0:
+				if (Flagi.light_lcd)
+				{
+
+					state_light=1;
+					cli();
+					cnt_light=200000;
+					offset_cnt_light=licznik;
+					sei();
+					
+				}
+			break;
+			case 1:
+			if(cnt_light<=licznik-offset_cnt_light)
+			{
+				Flagi.light_lcd=0;
+				state_light=0;
+			}
+			break;
+		}
+		lcd_light(Flagi.light_lcd);
 		
-		
+		//OpóŸnienie dzia³añ po wciœniêciu przycisku
 		switch(state)
 		{
 			case 0:
@@ -217,11 +236,13 @@ int main(void)
 					if(key_code)
 					{
 						state=1;
+						Flagi.light_lcd=1;	//W³¹cz podœwietlanie LCD
 						cli();
 						cnt=50000;
 						offset_cnt=licznik;
 						sei();
 					}
+
 					break;
 			case 1:
 					key_code=0;

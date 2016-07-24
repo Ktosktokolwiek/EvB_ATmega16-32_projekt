@@ -33,6 +33,8 @@
 #define SET_E 	PORT(LCD_EPORT) |= (1<<LCD_E)			// stan wysoki na linii E
 #define CLR_E 	PORT(LCD_EPORT) &= ~(1<<LCD_E)			// stan niski na linii E
 
+#define SET_LIGHT_LCD PORT(LCD_BLPORT) |= (1<<LCD_BL)
+#define CLR_LIGHT_LCD PORT(LCD_BLPORT) &= ~(1<<LCD_BL)
 
 uint8_t check_BF(void);			// deklaracja funkcji wewnêtrznej
 
@@ -527,4 +529,13 @@ void lcd_init(void)
 	//lcd_write_cmd( LCDC_SHIFT|LCDC_SHIFTR );
 	// kasowanie ekranu
 	lcd_cls();
+}
+
+//Podœwietlanie LCD:
+inline void lcd_light(uint8_t var)
+{
+	if(var != 0)
+		CLR_LIGHT_LCD;
+	else
+		SET_LIGHT_LCD;
 }
